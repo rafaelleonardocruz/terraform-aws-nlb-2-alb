@@ -1,24 +1,24 @@
 data "aws_iam_policy_document" "this" {
   statement {
     effect = "Allow"
-    action = [
+    actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resource = [
-      "arn:aws:logs:data.aws_region.name:${data.aws_caller_identity.current.account_id}:*"
+    resources = [
+      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
     ]
     sid = "LambdaBasicExecutionPolicy"
   }
 
   statement {
     effect = "Allow"
-    action = [
+    actions = [
       "s3:GetObject",
       "s3:PutObject",
     ]
-    resource = [
+    resources = [
       "${aws_s3_bucket.this.arn}/*"
     ]
     sid = "AllowS3Access"
@@ -26,46 +26,51 @@ data "aws_iam_policy_document" "this" {
 
   statement {
     effect = "Allow"
-    action = [
+    actions = [
       "elasticloadbalancing:RegisterTargets",
-      "elasticloadbalancing>DeregisterTargets",
+      "elasticloadbalancing:DeregisterTargets",
     ]
-    resource = [
-      # target group arns
+    resources = [
+      "*"
     ]
     sid = "ChangeTargetGroups"
   }
 
   statement {
     effect = "Allow"
-    action = [
+    actions = [
       "elasticloadbalancing:DescribeTargetHealth"
     ]
-    resource = "*"
+    resources = [
+      "*"
+    ]
     sid = "ReadTargetGroups"
   }
 
   statement {
     effect = "Allow"
-    action = [
+    actions = [
       "cloudwatch:putMetricData"
+    ]
+    resources = [
+      "*"
     ]
   }
 }
 
 resource "aws_iam_role_policy" "this" {
   name = "lambda-${var.prefix_name}-${var.lb_name}"
-  role = aws_iam_role.static_lb_lambda.id
+  role = aws_iam_role.this.id
   policy = data.aws_iam_policy_document.this.json
 }
 
 data "aws_iam_policy_document" "assume_role" {                                   
   statement {
     effect = "Allow"
-    action = [ 
+    actions = [ 
       "sts:AssumeRole",
     ]   
-    principal {
+    principals {
       type        = "Service"
       identifiers = ["lambda.amazonaws.com"]
     }
