@@ -18,3 +18,55 @@ resource "aws_lb" "this" {
 
   tags = data.aws_lb.this.tags
 }
+
+resource "aws_lb_target_group" "http" {
+  count = var.reply_http == true ? 1 : 0
+  name  = "${var.prefix_name}-${var.lb_name}-http"
+
+  proxy_protocol_v2 = false
+  target_type       = "ip"
+  port              = "80"
+  protocol          = "TCP"
+
+  vpc_id = data.aws_lb.this.vpc_id
+
+}
+
+resource "aws_lb_target_group" "https" {
+  count = var.reply_https == true ? 1 : 0
+  name  = "${var.prefix_name}-${var.lb_name}-https"
+
+  proxy_protocol_v2 = false
+  target_type       = "ip"
+  port              = "443"
+  protocol          = "TCP"
+
+  vpc_id = data.aws_lb.this.vpc_id
+
+}
+
+resource "aws_lb_listener" "http" {
+  count = var.reply_http == true ? 1 : 0
+
+  load_balancer_arn = aws_lb.this.arn
+  port              = "80"
+  protocol          = "TCP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.http[count.index].arn
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  count = var.reply_https == true ? 1 : 0
+
+  load_balancer_arn = aws_lb.this.arn
+  port              = "443"
+  protocol          = "TCP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.https[count.index].arn
+  }
+}
